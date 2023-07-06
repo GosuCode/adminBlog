@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as yup from "yup";
 import axios from "axios";
@@ -23,6 +23,10 @@ const FormField = [
         type: "date",
     },
     {
+        name: "categories",
+        type: "text",
+    },
+    {
         name: "description",
         type: "text",
     },
@@ -34,24 +38,31 @@ const FormField = [
 
 
 const Add = () => {
-    const handleSubmit = async (values) => {
-        try {
-            await axios.post("http://localhost:3001/posts", values);
-            console.log("Data inserted into the database!");
-            setTimeout(() => {
-                window.location.reload();
-            }, 10000);
-        } catch (error) {
-            console.error("Error inserting data into the database:", error);
-        }
-    };
-
     const [showimage, setShowImage] = useState("");
-    const [newImage, setImage] = useState([]);
 
     const handleImageChange = (event) => {
         setShowImage(event.target.files[0]);
-        setImage(newImage);
+    };
+
+    const handleSubmit = async (values) => {
+        console.trace("who called upon me?")
+        const formData = new FormData();
+        formData.append("title", values.title);
+        formData.append("subtitle", values.subtitle);
+        formData.append("date", values.date);
+        formData.append("description", values.description);
+        formData.append("categories", values.categories);
+        formData.append("image", showimage);
+        console.log(showimage);
+        try {
+            await axios.post("http://localhost:3001/posts", formData);
+            console.log("Data inserted into the database!");
+            setTimeout(() => {
+                window.location.reload();
+            }, 5000);
+        } catch (error) {
+            console.error("Error inserting data into the database:", error);
+        }
     };
 
     return (
@@ -62,6 +73,8 @@ const Add = () => {
                     subtitle: "",
                     date: "",
                     description: "",
+                    categories: "",
+                    image: [],
                 }}
 
                 validationSchema={schema}          //passing schema

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as yup from "yup";
 import axios from "axios";
-import { useParams } from "react-router-dom";
 
 const schema = yup.object().shape({
     title: yup.string().required("The title is required"),
@@ -24,6 +23,10 @@ const FormField = [
         type: "date",
     },
     {
+        name: "categories",
+        type: "text",
+    },
+    {
         name: "description",
         type: "text",
     },
@@ -34,12 +37,14 @@ const FormField = [
 ];
 
 
-const Update = () => {
-    const { id } = useParams();
+const Add = () => {
     const handleSubmit = async (values) => {
         try {
-            await axios.put(`http://localhost:3001/update/${id}`, values);
-            console.log("Data updated successfully!");
+            await axios.post("http://localhost:3001/posts", values);
+            console.log("Data inserted into the database!");
+            setTimeout(() => {
+                window.location.reload();
+            }, 10000);
         } catch (error) {
             console.error("Error inserting data into the database:", error);
         }
@@ -61,7 +66,8 @@ const Update = () => {
                     subtitle: "",
                     date: "",
                     description: "",
-                    image: "",
+                    categories: "",
+                    image: [],
                 }}
 
                 validationSchema={schema}          //passing schema
@@ -131,4 +137,4 @@ const Update = () => {
     );
 };
 
-export default Update;
+export default Add;

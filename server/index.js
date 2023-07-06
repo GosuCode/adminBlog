@@ -3,6 +3,7 @@ const mysql = require('mysql2')
 const app = express()
 const bodyParser = require("body-parser");
 const cors = require('cors')
+const path = require('path')
 
 // Creating a MySQL connection
 const db = mysql.createConnection({
@@ -16,19 +17,36 @@ const db = mysql.createConnection({
 app.use(cors())
 app.use(bodyParser.json());
 app.use(express.json())
+app.use(express.static('./Images'))
 
-// Setting up a route to handle the POST request
-app.post('/posts', (req, res) => {
-    const { title, subtitle, date, description } = req.body;
 
-    const sqlInsert = 'INSERT INTO posts (title, subtitle, date, description) VALUES (?, ?, ?, ?)';
-    db.query(sqlInsert, [title, subtitle, date, description], (err, result) => {
+//Images
+const multer = require("multer");
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "./Images");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage : storage });
+
+//Handle post request
+app.post('/posts',upload.single('image'),  (req, res) => {
+    const { title, subtitle, date, description, categories } = req.body;
+    const image = req.file.filename;
+
+    const sqlInsert = 'INSERT INTO posts (title, subtitle, date, description, categories, image) VALUES (?, ?, ?, ?, ?, ?)';
+    db.query(sqlInsert, [title, subtitle, date, description, categories, image], (err, result) => {
         if (err) {
             console.error('Error inserting data into the database: ', err);
             res.status(500).send('Error inserting data into the database');
             return;
         }
-        console.log('Data inserted into the database!');
+        console.log(req.file, 'Data inserted into the database!');
         res.status(200).send('Data inserted into the database');
     });
 });
@@ -66,7 +84,7 @@ app.get("/postById/:id", (req, res) => {
 });
 
 //Delete post
-app.delete('/posts/:id', (req, res) => {
+app.delete('/delete/:id', (req, res) => {
   const { id } = req.params;
   const sqlQuery = 'DELETE FROM posts WHERE id = ?';
 
@@ -85,7 +103,7 @@ app.delete('/posts/:id', (req, res) => {
 });
 
 //Update post
-app.put('/posts/:id', (req, res) => {
+app.put('/update/:id', (req, res) => {
   const { id } = req.params;
   const { title, subtitle, date, description } = req.body;
 
@@ -106,6 +124,49 @@ app.put('/posts/:id', (req, res) => {
 });
 
 
-app.listen(3001, ()=> {
-    console.log("running on port 3001")
+const jwt = require('jsonwebtoken');
+//login
+app.post('/login', (req, res) => {
+  const { email, password } = req.body;
+  const sqlQuery = 'SELECT * FROM users WHERE email = ? AND password = ?';
+
+  db.query(sqlQuery, [email, password], (err, result) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Error logging in' });
+    }
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const id = result[0].id;
+    const token = jwt.sign({ id }, 'secret', { expiresIn: '1h' });
+    return res.json({ Login: true, message: 'User logged in successfully', token });
+  });
+})
+
+
+//register
+app.post('/register', (req, res) => {
+  const { email, password } = req.body;
+  const sqlQuery = 'INSERT INTO users (email, password) VALUES (?, ?)';
+
+  db.query(sqlQuery, [email, password], (err, result) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Error registering user' });
+    }
+
+    return res.json({ message: 'User registered successfully' });
+  });
+})
+
+
+
+
+// const postRouter = require('./routes/posts')
+// app.use("/api/posts", postRouter )
+
+app.listen(3001, () => {
+    console.log("Server running on port 3001");
 })
